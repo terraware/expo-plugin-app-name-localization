@@ -284,6 +284,7 @@ describe('expo-plugin-app-name-localization', () => {
       const options = {
         localizations: {
           'en-US': 'American App',
+          'zh-Hans': 'Simplified Chinese App',
           ko: 'Korean App',
         },
       };
@@ -294,14 +295,15 @@ describe('expo-plugin-app-name-localization', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Check that Android locale format is used
-      expect(fs.ensureDir).toHaveBeenCalledTimes(2);
+      expect(fs.ensureDir).toHaveBeenCalledTimes(3);
 
       // Check all calls to ensureDir
       const calls = (fs.ensureDir as jest.MockedFunction<any>).mock.calls;
       const dirs = calls.map((call: any) => call[0]);
 
-      expect(dirs.some((dir: string) => dir.includes('values-en-rUS'))).toBe(true);
-      expect(dirs.some((dir: string) => dir.includes('values-ko'))).toBe(true);
+      expect(dirs.some((dir: string) => dir.includes('values-b+en+US'))).toBe(true);
+      expect(dirs.some((dir: string) => dir.includes('values-b+zh+Hans'))).toBe(true);
+      expect(dirs.some((dir: string) => dir.includes('values-b+ko'))).toBe(true);
     });
   });
 });

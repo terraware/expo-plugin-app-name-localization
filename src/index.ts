@@ -23,21 +23,21 @@ function isValidLocaleCode(locale: string): boolean {
 }
 
 /**
- * Converts locale code to iOS format (e.g., "en-US" to "en-US", "ko" to "ko")
+ * Converts a BCP-47 language tag to iOS format (e.g., "en-US" to
+   "en-US", "ko" to "ko")
  */
 function toIOSLocale(locale: string): string {
   return locale;
 }
 
 /**
- * Converts locale code to Android format (e.g., "en-US" to "en-rUS", "ko" to "ko")
+ * Converts a BCP-47 language tag to the Android resource directory string format.
+ *
+ * @see https://developer.android.com/guide/topics/resources/providing-resources#BCP47
+ * @see https://github.com/expo/expo/blob/e54d23a3e843187832091c614a9e271d1dbe81b5/packages/%40expo/config-plugins/src/android/Locales.ts#L38-L40
  */
 function toAndroidLocale(locale: string): string {
-  if (locale.includes('-')) {
-    const [language, region] = locale.split('-');
-    return `${language}-r${region}`;
-  }
-  return locale;
+  return `b+${locale.split('-').join('+')}`;
 }
 
 /**

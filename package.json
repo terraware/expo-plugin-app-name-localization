@@ -74,5 +74,8 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "apple-strings": "^0.0.3"
   }
 }

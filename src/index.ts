@@ -5,6 +5,8 @@ import {
   withStringsXml,
   IOSConfig,
 } from '@expo/config-plugins';
+import { parse, compile } from 'apple-strings';
+import type { I18nStringsFiles } from 'apple-strings';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { AppNameLocalizationOptions } from './types';
@@ -83,9 +85,17 @@ const withIOSLocalizedNames: ConfigPlugin<AppNameLocalizationOptions> = (
       // Create directory
       await fs.ensureDir(lprojDir);
 
-      // Create InfoPlist.strings file
+      // Create or update InfoPlist.strings file, preserving existing entries
       const stringsPath = path.join(lprojDir, stringFileName);
-      const stringsContent = `/* Localized app name */\nCFBundleDisplayName = "${appName}";`;
+      let strings: I18nStringsFiles = {};
+      try {
+        const existingContent = await fs.readFile(stringsPath, 'utf8');
+        strings = parse(existingContent);
+      } catch {
+        // File doesn't exist yet, start with empty entries
+      }
+      strings['CFBundleDisplayName'] = appName;
+      const stringsContent = compile(strings);
 
       await fs.writeFile(stringsPath, stringsContent, 'utf8');
 

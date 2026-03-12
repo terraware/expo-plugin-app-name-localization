@@ -19,7 +19,7 @@ jest.mock('fs-extra', () => ({
   ensureDir: jest.fn(),
   writeFile: jest.fn(),
   pathExists: jest.fn(() => Promise.resolve(false)),
-  readFile: jest.fn(),
+  readFile: jest.fn(() => Promise.reject(new Error('ENOENT'))),
 }));
 
 describe('expo-plugin-app-name-localization', () => {
@@ -177,6 +177,73 @@ describe('expo-plugin-app-name-localization', () => {
       );
       expect(appNameString).toBeDefined();
       expect((appNameString as any)._).toBe('Brand New App');
+    });
+  });
+
+  describe('iOS InfoPlist.strings merging', () => {
+    const fs = require('fs-extra');
+
+    it('should create new file when none exists', async () => {
+      const config = { ...mockConfig, modResults: {} };
+      const options = { localizations: { ko: '테스트 앱' } };
+
+      // fs.readFile rejects by default (ENOENT)
+
+      const mockWithInfoPlist = withInfoPlist as jest.MockedFunction<typeof withInfoPlist>;
+      mockWithInfoPlist.mockImplementation((config) => config);
+      (withStringsXml as jest.MockedFunction<typeof withStringsXml>).mockImplementation(
+        (config) => config
+      );
+
+      const mockWithXcodeProject = withXcodeProject as jest.MockedFunction<typeof withXcodeProject>;
+      mockWithXcodeProject.mockImplementation((config, callback) => {
+        callback(config as any);
+        return config;
+      });
+
+      withAppNameLocalization(config, options);
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('ko.lproj/InfoPlist.strings'),
+        expect.stringContaining('"CFBundleDisplayName" = "테스트 앱"'),
+        'utf8'
+      );
+    });
+
+    it('should preserve existing keys when file already exists', async () => {
+      const config = { ...mockConfig, modResults: {} };
+      const options = { localizations: { ko: '테스트 앱' } };
+
+      // Simulate existing file with a different key
+      (fs.readFile as jest.MockedFunction<typeof fs.readFile>).mockResolvedValueOnce(
+        '"CFBundleName" = "Existing";\n' as never
+      );
+
+      const mockWithInfoPlist = withInfoPlist as jest.MockedFunction<typeof withInfoPlist>;
+      mockWithInfoPlist.mockImplementation((config) => config);
+      (withStringsXml as jest.MockedFunction<typeof withStringsXml>).mockImplementation(
+        (config) => config
+      );
+
+      const mockWithXcodeProject = withXcodeProject as jest.MockedFunction<typeof withXcodeProject>;
+      mockWithXcodeProject.mockImplementation((config, callback) => {
+        callback(config as any);
+        return config;
+      });
+
+      withAppNameLocalization(config, options);
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const writeCall = (fs.writeFile as jest.MockedFunction<any>).mock.calls.find(
+        (call: any) => typeof call[0] === 'string' && call[0].includes('ko.lproj/InfoPlist.strings')
+      );
+      expect(writeCall).toBeDefined();
+      const written = writeCall![1] as string;
+      expect(written).toContain('"CFBundleName" = "Existing"');
+      expect(written).toContain('"CFBundleDisplayName" = "테스트 앱"');
     });
   });
 
